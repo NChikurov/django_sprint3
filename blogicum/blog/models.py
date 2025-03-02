@@ -1,11 +1,13 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
+from core.models import PublishedModel
+
 
 User = get_user_model()
 
 
-class Category(models.Model):
+class Category(PublishedModel):
     title = models.CharField(
         max_length=256,
         verbose_name='Заголовок',
@@ -18,19 +20,11 @@ class Category(models.Model):
     slug = models.SlugField(
         unique=True,
         verbose_name='Идентификатор',
-        help_text=('Идентификатор страницы для URL; '
-                   'разрешены символы латиницы, '
-                   'цифры, дефис и подчёркивание.'),
-    )
-    is_published = models.BooleanField(
-        default=True,
-        verbose_name='Опубликовано',
-        help_text='Снимите галочку, чтобы скрыть публикацию.',
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено',
-        help_text='Дата добавления категории',
+        help_text=(
+            'Идентификатор страницы для URL; '
+            'разрешены символы латиницы, '
+            'цифры, дефис и подчёркивание.'
+        ),
     )
 
     class Meta:
@@ -41,21 +35,11 @@ class Category(models.Model):
         return self.title
 
 
-class Location(models.Model):
+class Location(PublishedModel):
     name = models.CharField(
         max_length=256,
         verbose_name='Название места',
         help_text='Название места',
-    )
-    is_published = models.BooleanField(
-        default=True,
-        verbose_name='Опубликовано',
-        help_text='Место опубликовано',
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено',
-        help_text='Дата добавления места',
     )
 
     class Meta:
@@ -66,7 +50,7 @@ class Location(models.Model):
         return self.name
 
 
-class Post(models.Model):
+class Post(PublishedModel):
     title = models.CharField(
         max_length=256,
         verbose_name='Заголовок',
@@ -85,7 +69,7 @@ class Post(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор публикации',
-        help_text='Автор публикации',
+        help_text='Автор публикации'
     )
     location = models.ForeignKey(
         Location,
@@ -93,30 +77,20 @@ class Post(models.Model):
         null=True,
         blank=True,
         verbose_name='Местоположение',
-        help_text='Местоположение публикации',
+        help_text='Местоположение публикации'
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        blank=False,
         verbose_name='Категория',
-        help_text='Категория публикации',
-    )
-    is_published = models.BooleanField(
-        default=True,
-        verbose_name='Опубликовано',
-        help_text='Публикация опубликована',
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено',
-        help_text='Дата добавления публикации',
+        help_text='Категория публикации'
     )
 
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
+        related_name = 'posts'
 
     def __str__(self):
         return self.title

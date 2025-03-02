@@ -1,52 +1,87 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
+from .constants import POSTS_PER_PAGE
 from .models import Post, Category
 
 
+def get_post_queryset():
+    """Возвращает базовый QuerySet для получения постов.
+
+    Returns:
+        QuerySet: Базовый QuerySet с фильтрацией.
+    """
+    return (
+        Post.objects.select_related('author', 'category', 'location')
+        .filter(
+            pub_date__lte=timezone.now(),
+            is_published=True,
+            category__is_published=True
+        )
+    )
+
+
 def index(request):
+    """Отображает главную страницу блога.
+
+    Выводит последние публикованные посты.
+
+    Args:
+        request: Объект HttpRequest, представляющий запрос.
+
+    Returns:
+        HttpResponse: Объект ответа с шаблоном blog/index.html.
     """
-    Отображает главную страницу с пятью последними публикациями.
-    Публикации фильтруются по дате и статусу публикации поста и категории.
-    """
-    post_list = Post.objects.select_related('category', 'location').filter(
-        pub_date__lte=timezone.now(),
-        is_published=True,
-        category__is_published=True
-    ).order_by('-pub_date')[:5]
+    post_list = get_post_queryset().order_by('-pub_date')[:POSTS_PER_PAGE]
     context = {'post_list': post_list}
     return render(request, 'blog/index.html', context)
 
 
 def post_detail(request, post_id):
-    """Отображает подробности одного поста по его id."""
-    post = get_object_or_404(
-        Post,
-        id=post_id,
-        pub_date__lte=timezone.now(),
-        is_published=True,
-        category__is_published=True
-    )
+    """Отображает детальную информацию о посте.
+
+    Выводит подробную информацию о посте с указанным ID.
+
+    Args:
+        request: Объект HttpRequest, представляющий запрос.
+        post_id: Целочисленный ID запрашиваемого поста.
+
+    Returns:
+        HttpResponse: Объект ответа с шаблоном blog/detail.html.
+
+    Raises:
+        Http404: Если пост не найден или не соответствует условиям публикации.
+    """
+    post = get_object_or_404(get_post_queryset(), id=post_id)
     context = {'post': post}
     return render(request, 'blog/detail.html', context)
 
 
 def category_posts(request, category_slug):
-    """
-    Отображает страницу с постами, отфильтрованными по категории.
-    Выводятся только опубликованные посты с датой публикации
-    не позже текущего времени.
+    """Отображает список постов в категории.
+
+    Выводит все опубликованные посты для указанной категории.
+
+    Args:
+        request: Объект HttpRequest, представляющий запрос.
+        category_slug: Строковый идентификатор категории.
+
+    Returns:
+        HttpResponse: Объект ответа с шаблоном blog/category.html.
+
+    Raises:
+        Http404: Если категория не найдена или не опубликована.
     """
     category = get_object_or_404(
         Category,
         slug=category_slug,
         is_published=True
     )
-    post_list = Post.objects.select_related('category', 'location').filter(
-        category=category,
-        is_published=True,
-        pub_date__lte=timezone.now()
-    ).order_by('-pub_date')
+    post_list = (
+        get_post_queryset()
+        .filter(category=category)
+        .order_by('-pub_date')
+    )
     context = {
         'category': category,
         'post_list': post_list
